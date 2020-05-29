@@ -25,6 +25,8 @@
 
 package java.util;
 
+import sun.misc.SharedSecrets;
+
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.Serializable;
@@ -34,7 +36,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import sun.misc.SharedSecrets;
 
 /**
  * Hash table based implementation of the <tt>Map</tt> interface.  This
@@ -624,22 +625,22 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
-        Node<K,V>[] tab; Node<K,V> p; int n, i;
-        if ((tab = table) == null || (n = tab.length) == 0)
-            n = (tab = resize()).length;
-        if ((p = tab[i = (n - 1) & hash]) == null)
-            tab[i] = newNode(hash, key, value, null);
+        Node<K,V>[] tab; Node<K,V> rootNode; int tableLength, index;
+        if ((tab = table) == null || (tableLength = tab.length) == 0)
+            tableLength = (tab = resize()).length;
+        if ((rootNode = tab[index = (tableLength - 1) & hash]) == null)
+            tab[index] = newNode(hash, key, value, null);
         else {
             Node<K,V> e; K k;
-            if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
-                e = p;
-            else if (p instanceof TreeNode)
-                e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+            if (rootNode.hash == hash &&
+                ((k = rootNode.key) == key || (key != null && key.equals(k))))
+                e = rootNode;
+            else if (rootNode instanceof TreeNode)
+                e = ((TreeNode<K,V>)rootNode).putTreeVal(this, tab, hash, key, value);
             else {
                 for (int binCount = 0; ; ++binCount) {
-                    if ((e = p.next) == null) {
-                        p.next = newNode(hash, key, value, null);
+                    if ((e = rootNode.next) == null) {
+                        rootNode.next = newNode(hash, key, value, null);
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                         {
                             treeifyBin(tab, hash);
@@ -650,7 +651,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         ((k = e.key) == key || (key != null && key.equals(k)))) {
                         break;
                     }
-                    p = e;
+                    rootNode = e;
                 }
             }
             if (e != null) { // existing mapping for key
