@@ -83,20 +83,20 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * states use cheaper ordered/lazy writes because values are unique
      * and cannot be further modified.
      *
-     * Possible state transitions:
+     * Possible state transitions: 对
      * NEW -> COMPLETING -> NORMAL
      * NEW -> COMPLETING -> EXCEPTIONAL
      * NEW -> CANCELLED
      * NEW -> INTERRUPTING -> INTERRUPTED
      */
     private volatile int state;
-    private static final int NEW          = 0;
-    private static final int COMPLETING   = 1;
-    private static final int NORMAL       = 2;
-    private static final int EXCEPTIONAL  = 3;
-    private static final int CANCELLED    = 4;
-    private static final int INTERRUPTING = 5;
-    private static final int INTERRUPTED  = 6;
+    private static final int NEW          = 0; // 初始状态，新建
+    private static final int COMPLETING   = 1; // 正在结束
+    private static final int NORMAL       = 2; // 正常执行完毕
+    private static final int EXCEPTIONAL  = 3; // 异常执行完毕
+    private static final int CANCELLED    = 4; // 前一个状态必须是NEW，已取消（未中断）
+    private static final int INTERRUPTING = 5; // 前一个状态必须是NEW，正在中断（中断）
+    private static final int INTERRUPTED  = 6; // 取消成功的才可以设置，中断完成（中断）
 
     /** The underlying callable; nulled out after running */
     private Callable<V> callable;
@@ -157,7 +157,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
         return state >= CANCELLED;
     }
 
-    public boolean isDone() {
+    public boolean isDone() { // 状态不为NEW的都是完成的，COMPLETING虽然是正在结束，但这个过程很快
         return state != NEW;
     }
 
@@ -227,6 +227,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * @param v the value
      */
     protected void set(V v) {
+        // 正常结束
         if (UNSAFE.compareAndSwapInt(this, stateOffset, NEW, COMPLETING)) {
             outcome = v;
             UNSAFE.putOrderedInt(this, stateOffset, NORMAL); // final state
@@ -245,6 +246,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * @param t the cause of failure
      */
     protected void setException(Throwable t) {
+        // 异常结束
         if (UNSAFE.compareAndSwapInt(this, stateOffset, NEW, COMPLETING)) {
             outcome = t;
             UNSAFE.putOrderedInt(this, stateOffset, EXCEPTIONAL); // final state
@@ -399,7 +401,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
         WaitNode q = null;
         boolean queued = false;
         for (;;) {
-            if (Thread.interrupted()) {
+            if (Thread.interrupted()) { // 当前线程支持响应中断
                 removeWaiter(q);
                 throw new InterruptedException();
             }

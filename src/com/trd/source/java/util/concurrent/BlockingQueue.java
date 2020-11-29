@@ -195,6 +195,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
+     *         无阻塞的向队列尾部添加元素（队列满时会抛异常，所以根本不会返回false）
      */
     boolean add(E e);
 
@@ -214,6 +215,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
+     * 向队列尾部中添加一个元素，不会阻塞，返回true代表添加成功，false代表添加失败
+     * 是线程安全的，因为会加锁
      */
     boolean offer(E e);
 
@@ -228,6 +231,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
+     *         向队列尾部添加元素，会阻塞
      */
     void put(E e) throws InterruptedException;
 
@@ -248,6 +252,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
+     *         超时等待的向队列尾部添加元素，true -> 添加成功。false -> 添加失败
      */
     boolean offer(E e, long timeout, TimeUnit unit)
         throws InterruptedException;
@@ -255,7 +260,7 @@ public interface BlockingQueue<E> extends Queue<E> {
     /**
      * Retrieves and removes the head of this queue, waiting if necessary
      * until an element becomes available.
-     *
+     *从队列头中取元素，如果没元素，则让当前线程等待
      * @return the head of this queue
      * @throws InterruptedException if interrupted while waiting
      */
@@ -272,6 +277,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @return the head of this queue, or {@code null} if the
      *         specified waiting time elapses before an element is available
      * @throws InterruptedException if interrupted while waiting
+     * 从队列头中取元素，如果没元素，忙等待指定时间获取元素，没获取到则返回Null,不会阻塞当前线程
      */
     E poll(long timeout, TimeUnit unit)
         throws InterruptedException;
@@ -287,7 +293,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * because it may be the case that another thread is about to
      * insert or remove an element.
      *
-     * @return the remaining capacity
+     * @return the remaining capacity 剩余容量
      */
     int remainingCapacity();
 

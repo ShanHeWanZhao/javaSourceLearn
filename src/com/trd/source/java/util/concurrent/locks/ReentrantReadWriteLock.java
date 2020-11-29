@@ -259,10 +259,10 @@ public class ReentrantReadWriteLock
          * and the upper the shared (reader) hold count.
          */
 
-        static final int SHARED_SHIFT   = 16;
-        static final int SHARED_UNIT    = (1 << SHARED_SHIFT);
-        static final int MAX_COUNT      = (1 << SHARED_SHIFT) - 1;
-        static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;
+        static final int SHARED_SHIFT   = 16;                     //   读状态位            写状态位
+        static final int SHARED_UNIT    = (1 << SHARED_SHIFT);    // 0000000000000001 0000000000000000
+        static final int MAX_COUNT      = (1 << SHARED_SHIFT) - 1;// 0000000000000000 1111111111111111
+        static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;// 0000000000000000 1111111111111111
 
         /** Returns the number of shared holds represented in count  */
         static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }

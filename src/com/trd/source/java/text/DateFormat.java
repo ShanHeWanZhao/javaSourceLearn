@@ -159,6 +159,7 @@ public abstract class DateFormat extends Format {
      * <p>Subclasses should initialize this field to a {@link Calendar}
      * appropriate for the {@link Locale} associated with this
      * <code>DateFormat</code>.
+     * 会导致线程不安全
      * @serial
      */
     protected Calendar calendar;

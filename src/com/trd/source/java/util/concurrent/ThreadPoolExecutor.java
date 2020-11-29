@@ -378,20 +378,21 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * that workerCount is 0 (which sometimes entails a recheck -- see
      * below).
      */
-    private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
-    private static final int COUNT_BITS = Integer.SIZE - 3;
-    private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
+    private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));// 1110 0000 0000 0000 0000 0000 0000 0000 初始值
+    private static final int COUNT_BITS = Integer.SIZE - 3; // 29位
+    private static final int CAPACITY   = (1 << COUNT_BITS) - 1;// 0001 1111 1111 1111 1111 1111 1111 1111
+                                                                // 1110 0000 0000 0000 0000 0000 0000 0000 取反后
 
     // runState is stored in the high-order bits
-    private static final int RUNNING    = -1 << COUNT_BITS;
-    private static final int SHUTDOWN   =  0 << COUNT_BITS;
-    private static final int STOP       =  1 << COUNT_BITS;
-    private static final int TIDYING    =  2 << COUNT_BITS;
-    private static final int TERMINATED =  3 << COUNT_BITS;
+    private static final int RUNNING    = -1 << COUNT_BITS; // 111 00000000000000000000000000000
+    private static final int SHUTDOWN   =  0 << COUNT_BITS; // 000 00000000000000000000000000000
+    private static final int STOP       =  1 << COUNT_BITS; // 001 00000000000000000000000000000
+    private static final int TIDYING    =  2 << COUNT_BITS; // 010 00000000000000000000000000000
+    private static final int TERMINATED =  3 << COUNT_BITS; // 011 00000000000000000000000000000
 
     // Packing and unpacking ctl
-    private static int runStateOf(int c)     { return c & ~CAPACITY; }
-    private static int workerCountOf(int c)  { return c & CAPACITY; }
+    private static int runStateOf(int c)     { return c & ~CAPACITY; } // 后29位为0，前3为跟随c
+    private static int workerCountOf(int c)  { return c & CAPACITY; } // 前3位为0，后面29为跟随 c
     private static int ctlOf(int rs, int wc) { return rs | wc; }
 
     /*
@@ -591,6 +592,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * the thread actually starts running tasks, we initialize lock
      * state to a negative value, and clear it upon start (in
      * runWorker).
+     *
+     * 让worker充当锁的目的是更好的让外部知道当前worker是否正在运行，
+     * worker运行时（获取到任务后开始运行），会加锁，通过测试当前worker是否加上锁或者是否可以获得当前worker的锁，
+     * 便可知道worker是否繁忙，有助于worker的清理
      */
     private final class Worker
         extends AbstractQueuedSynchronizer
@@ -629,10 +634,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         // The value 0 represents the unlocked state.
         // The value 1 represents the locked state.
 
+        /** 是否被拿到了互斥锁 */
         protected boolean isHeldExclusively() {
             return getState() != 0;
         }
 
+        /** state为0才会返回true */
         protected boolean tryAcquire(int unused) {
             if (compareAndSetState(0, 1)) {
                 setExclusiveOwnerThread(Thread.currentThread());
@@ -641,6 +648,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             return false;
         }
 
+        /** 不用判断是否获取到锁，始终返回true并设置state为0 */
         protected boolean tryRelease(int unused) {
             setExclusiveOwnerThread(null);
             setState(0);
@@ -1072,6 +1080,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                     workQueue.take();
+                // 不为null才返回，就不用担心返回null而终结了当前线程
                 if (r != null)
                     return r;
                 timedOut = true;
@@ -1131,6 +1140,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
+            // 利用阻塞队列，一直循环取任务执行（阻塞队列为空时会阻塞当前想取出元素的线程）
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
@@ -1363,11 +1373,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * and so reject the task.
          */
         int c = ctl.get();
+        // 判断是否小于核心线程数，是则新建线程运行任务
         if (workerCountOf(c) < corePoolSize) {
             if (addWorker(command, true))
                 return;
             c = ctl.get();
         }
+        // 核心数满了，加到等待队列中
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
             if (! isRunning(recheck) && remove(command))
@@ -1375,7 +1387,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
+        // 等待队列满了，新建线程，但不能大于最大线程数
         else if (!addWorker(command, false))
+            // 创建失败，直接调用拒绝策略
             reject(command);
     }
 

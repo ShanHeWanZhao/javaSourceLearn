@@ -175,7 +175,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         final Object[] items = this.items;
         @SuppressWarnings("unchecked")
         E x = (E) items[takeIndex];
-        items[takeIndex] = null;
+        items[takeIndex] = null; // gc避免内存泄漏
         if (++takeIndex == items.length)
             takeIndex = 0;
         count--;

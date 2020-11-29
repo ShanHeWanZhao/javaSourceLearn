@@ -351,6 +351,7 @@ public abstract class Buffer {
      * java.nio.ByteBuffer#compact compact} method when transferring data from
      * one place to another.  </p>
      *
+     *  只是将写模式切换为读模式
      * @return  This buffer
      */
     public final Buffer flip() {

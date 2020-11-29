@@ -148,6 +148,7 @@ public interface Queue<E> extends Collection<E> {
      * {@code true} upon success and throwing an {@code IllegalStateException}
      * if no space is currently available.
      *
+     *
      * @param e the element to add
      * @return {@code true} (as specified by {@link Collection#add})
      * @throws IllegalStateException if the element cannot be added at this
@@ -158,6 +159,8 @@ public interface Queue<E> extends Collection<E> {
      *         this queue does not permit null elements
      * @throws IllegalArgumentException if some property of this element
      *         prevents it from being added to this queue
+     *
+     * 只会返回true,因为是通过抛异常来提示容量满了
      */
     boolean add(E e);
 
@@ -167,7 +170,6 @@ public interface Queue<E> extends Collection<E> {
      * When using a capacity-restricted queue, this method is generally
      * preferable to {@link #add}, which can fail to insert an element only
      * by throwing an exception.
-     *
      * @param e the element to add
      * @return {@code true} if the element was added to this queue, else
      *         {@code false}
@@ -177,6 +179,7 @@ public interface Queue<E> extends Collection<E> {
      *         this queue does not permit null elements
      * @throws IllegalArgumentException if some property of this element
      *         prevents it from being added to this queue
+     *   false，添加失败
      */
     boolean offer(E e);
 
@@ -187,6 +190,7 @@ public interface Queue<E> extends Collection<E> {
      *
      * @return the head of this queue
      * @throws NoSuchElementException if this queue is empty
+     * 移除队首的元素，队首无元素时会抛异常
      */
     E remove();
 
@@ -195,6 +199,7 @@ public interface Queue<E> extends Collection<E> {
      * or returns {@code null} if this queue is empty.
      *
      * @return the head of this queue, or {@code null} if this queue is empty
+     * 无阻塞的弹出数据，没有时会返回空
      */
     E poll();
 

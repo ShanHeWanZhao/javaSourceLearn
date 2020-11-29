@@ -36,4 +36,5 @@ public class HashMapTest {
         map.put("29", 12);
         System.out.println(map);
     }
+
 }

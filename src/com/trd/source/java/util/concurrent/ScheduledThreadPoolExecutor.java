@@ -242,7 +242,7 @@ public class ScheduledThreadPoolExecutor
             if (other instanceof ScheduledFutureTask) {
                 ScheduledFutureTask<?> x = (ScheduledFutureTask<?>)other;
                 long diff = time - x.time;
-                if (diff < 0)
+                if (diff < 0) // 当前对象大的延时时间更长，返回负数该放在队列末尾
                     return -1;
                 else if (diff > 0)
                     return 1;

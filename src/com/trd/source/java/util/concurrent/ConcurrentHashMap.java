@@ -765,6 +765,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * when table is null, holds the initial table size to use upon
      * creation, or 0 for default. After initialization, holds the
      * next element count value upon which to resize the table.
+     * 控制table初始化和扩容操
+     * -1代表正在初始化
+     * -N 表示有N-1个线程正在进行扩容操作
+     * 正数或0代表hash表还没有被初始化，这个数值表示初始化或下一次进行扩容的大小
      */
     private transient volatile int sizeCtl;
 
@@ -907,15 +911,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     public V get(Object key) {
         Node<K,V>[] tab; Node<K,V> e, p; int n, eh; K ek;
-        int h = spread(key.hashCode());
+        int h = spread(key.hashCode()); // 计算key的hash
         if ((tab = table) != null && (n = tab.length) > 0 &&
-            (e = tabAt(tab, (n - 1) & h)) != null) {
+            (e = tabAt(tab, (n - 1) & h)) != null) { // table已经从初始化了，并且这个hash桶存在
             if ((eh = e.hash) == h) {
-                if ((ek = e.key) == key || (ek != null && key.equals(ek)))
+                if ((ek = e.key) == key || (ek != null && key.equals(ek))) // key就为桶
                     return e.val;
             }
+            // 树
             else if (eh < 0)
                 return (p = e.find(h, key)) != null ? p.val : null;
+            // 链表遍历
             while ((e = e.next) != null) {
                 if (e.hash == h &&
                     ((ek = e.key) == key || (ek != null && key.equals(ek))))
@@ -987,18 +993,18 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
             Node<K,V> rootNode; int tableLength, index, fh;
-            if (tab == null || (tableLength = tab.length) == 0)
+            if (tab == null || (tableLength = tab.length) == 0) // 判断table是否初始化
                 tab = initTable();
-            else if ((rootNode = tabAt(tab, index = (tableLength - 1) & hash)) == null) {
+            else if ((rootNode = tabAt(tab, index = (tableLength - 1) & hash)) == null) { // 当前桶还未被占用，直接CAS占用
                 if (casTabAt(tab, index, null,
                              new Node<K,V>(hash, key, value, null)))
                     break;                   // no lock when adding to empty bin
             }
-            else if ((fh = rootNode.hash) == MOVED)
+            else if ((fh = rootNode.hash) == MOVED) // 有线程正在进行扩容操作，则先帮助扩容
                 tab = helpTransfer(tab, rootNode);
             else {
                 V oldVal = null;
-                synchronized (rootNode) {
+                synchronized (rootNode) { // 桶加锁，准备开始链数据了
                     if (tabAt(tab, index) == rootNode) {
                         if (fh >= 0) {
                             binCount = 1;
@@ -2197,7 +2203,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     private final Node<K,V>[] initTable() {
         Node<K,V>[] tab; int sc;
         while ((tab = table) == null || tab.length == 0) {
-            if ((sc = sizeCtl) < 0)
+            if ((sc = sizeCtl) < 0) // 有其他线程在初始化，当前线程让出cpu的执行时间
                 Thread.yield(); // lost initialization race; just spin
             else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                 try {
@@ -2206,6 +2212,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
                         table = tab = nt;
+                        // 下次扩容的大小，相当于0.75 * n 设置一个扩容的阈值
                         sc = n - (n >>> 2);
                     }
                 } finally {

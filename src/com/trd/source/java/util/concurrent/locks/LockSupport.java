@@ -132,7 +132,8 @@ public class LockSupport {
      * to {@code park} is guaranteed not to block. This operation
      * is not guaranteed to have any effect at all if the given
      * thread has not been started.
-     *
+     *唤醒指定的线程（如果该线程被park了）
+     * 如果线程先被unpark（解除等待）了，那么该线程下一次调用park(进入等待)则不起作用
      * @param thread the thread to unpark, or {@code null}, in which case
      *        this operation has no effect
      */
@@ -164,7 +165,8 @@ public class LockSupport {
      * method to return. Callers should re-check the conditions which caused
      * the thread to park in the first place. Callers may also determine,
      * for example, the interrupt status of the thread upon return.
-     *
+     * 当前调用的线程进入等待状态
+     * ，并设置一个阻塞器（这个只是用来jstack查看，并不能通过notifyAll来唤醒阻塞的线程）
      * @param blocker the synchronization object responsible for this
      *        thread parking
      * @since 1.6
@@ -202,7 +204,6 @@ public class LockSupport {
      * the thread to park in the first place. Callers may also determine,
      * for example, the interrupt status of the thread, or the elapsed time
      * upon return.
-     *
      * @param blocker the synchronization object responsible for this
      *        thread parking
      * @param nanos the maximum number of nanoseconds to wait
@@ -330,7 +331,7 @@ public class LockSupport {
      * the thread to park in the first place. Callers may also determine,
      * for example, the interrupt status of the thread, or the elapsed time
      * upon return.
-     *
+     *超时等待，等待指定的纳秒数，然后就向下继续运行
      * @param nanos the maximum number of nanoseconds to wait
      */
     public static void parkNanos(long nanos) {
@@ -364,7 +365,9 @@ public class LockSupport {
      * the thread to park in the first place. Callers may also determine,
      * for example, the interrupt status of the thread, or the current time
      * upon return.
-     *
+     *等待当前线程，并设置一个绝对时间（毫秒值）。也就是说，如果指定的毫秒值小于当前时间的毫秒值
+     * 则当前线程继续向下运行
+     * 可以使用System.currentTimeMillis() +毫秒值来设置超时等待的时间
      * @param deadline the absolute time, in milliseconds from the Epoch,
      *        to wait until
      */

@@ -297,6 +297,7 @@ class Thread implements Runnable {
      *          if any thread has interrupted the current thread. The
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
+     * 注意，该方法会同过抛出InterruptedException异常来响应中断并且重置中断位
      */
     public static native void sleep(long millis) throws InterruptedException;
 
@@ -354,9 +355,9 @@ class Thread implements Runnable {
      *
      * @param g the Thread group
      * @param target the object whose run() method gets called
-     * @param name the name of the new Thread
+     * @param name the name of the new Thread 线程名
      * @param stackSize the desired stack size for the new thread, or
-     *        zero to indicate that this parameter is to be ignored.
+     *        zero to indicate that this parameter is to be ignored. 堆栈大小，默认为0
      * @param acc the AccessControlContext to inherit, or
      *            AccessController.getContext() if null
      * @param inheritThreadLocals if {@code true}, inherit initial values for
@@ -967,7 +968,19 @@ class Thread implements Runnable {
     /**
      * Tests if some Thread has been interrupted.  The interrupted state
      * is reset or not based on the value of ClearInterrupted that is
-     * passed.
+     * passed. <p/>
+     * 正常运行的线程中断为都为false（表示未中断）。
+     * 测试当前线程是否中断，如果传入为true，则会重置中断位（即变为未中断状态）
+     * 例：假设当前中断为true：
+     *  第一次调用此方法并且传入true时，会返回当前中断位的true，并且清除中断位使其变为false
+     *  当第二次调用此方法并且传入true时，肯定返回当前中断位的false，在重置为false（相当于不变） <p/>
+     *  一般不直接调用这个方法，而调用：
+     *  isInterrupted() ： 测试是否中断，且不重置
+     *  interrupted()：   测试是否中断，且重置 <p/>
+     *
+     * 重点：中断位出现是为了让线程安全退出，也就是说应该人为的处理中断位并合适的退出，这样做的
+     * 目的是防止操作系统强制中断当前线程产生不可预期的后果。
+     * 顺便一定要提防sleep，因为调用该方法后，他会通过抛出异常来响应中断，并且会重置中断位，切记注意
      */
     private native boolean isInterrupted(boolean ClearInterrupted);
 
@@ -1237,10 +1250,13 @@ class Thread implements Runnable {
      *          if any thread has interrupted the current thread. The
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
+     *  synchronized很重要，因为wait和notify只有在synchronized里调用
+     *  注意：当线程终止时，会调用自己的notifyAll()方法，所以才会解放调用方法的线程
      */
     public final synchronized void join(long millis)
     throws InterruptedException {
         long base = System.currentTimeMillis();
+        // 已经等了多少毫秒了
         long now = 0;
 
         if (millis < 0) {
@@ -1312,6 +1328,9 @@ class Thread implements Runnable {
      *
      * <p> An invocation of this method behaves in exactly the same
      * way as the invocation
+     * 等待指定的线程终止。
+     *  例如：在A线程中调用了B线程的join()方法（即B.join()），则表示A线程此时进入等待状态，
+     *  会等待B线程终止才会继续执行
      *
      * <blockquote>
      * {@linkplain #join(long) join}{@code (0)}

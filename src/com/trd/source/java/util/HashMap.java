@@ -232,19 +232,29 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
 
     /**
-     * The default initial capacity - MUST be a power of two.
+     * The default initial capacity - MUST be a power of two.<p/>
+     * 数组默认长度
      */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
     /**
      * The maximum capacity, used if a higher value is implicitly specified
      * by either of the constructors with arguments.
-     * MUST be a power of two <= 1<<30.
+     * MUST be a power of two <= 1<<30.<p/>
+     * 最大容量（即数组最大长度）
      */
     static final int MAXIMUM_CAPACITY = 1 << 30;
 
     /**
-     * The load factor used when none specified in constructor.
+     * The load factor used when none specified in constructor.<p/>
+     * 默认加载因子 <br/>
+     * loadFactor加载因子是控制数组存放数据的疏密程度，
+     * loadFactor越趋近于1，那么 数组中存放的数据(entry)也就越多，
+     * 也就越密，也就是会让链表的长度增加，loadFactor越小，也就是趋近于0，
+     * 数组中存放的数据(entry)也就越少，也就越稀疏。<br/>
+     *
+     * loadFactor太大导致查找元素效率低，太小导致数组的利用率低，
+     * 存放的数据会很分散。loadFactor的默认值为0.75f是官方给出的一个比较好的临界值。
      */
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
@@ -254,14 +264,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * bin with at least this many nodes. The value must be greater
      * than 2 and should be at least 8 to mesh with assumptions in
      * tree removal about conversion back to plain bins upon
-     * shrinkage.
+     * shrinkage.<p/>
+     * 树化阈值。当桶(bucket)上的结点数大于这个值时会转成红黑树
      */
     static final int TREEIFY_THRESHOLD = 8;
 
     /**
      * The bin count threshold for untreeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
-     * most 6 to mesh with shrinkage detection under removal.
+     * most 6 to mesh with shrinkage detection under removal.<p/>
+     * 链表化阈值（当桶(bucket)上的结点数小于这个值时树转链表）
      */
     static final int UNTREEIFY_THRESHOLD = 6;
 
@@ -269,7 +281,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The smallest table capacity for which bins may be treeified.
      * (Otherwise the table is resized if too many nodes in a bin.)
      * Should be at least 4 * TREEIFY_THRESHOLD to avoid conflicts
-     * between resizing and treeification thresholds.
+     * between resizing and treeification thresholds.<p/>
+     * 桶中结构树化对应的table的最小长度
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
@@ -392,18 +405,21 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The table, initialized on first use, and resized as
      * necessary. When allocated, length is always a power of two.
      * (We also tolerate length zero in some operations to allow
-     * bootstrapping mechanics that are currently not needed.)
+     * bootstrapping mechanics that are currently not needed.)<p/>
+     * 存储元素的数组，总是2的幂次倍
      */
     transient Node<K,V>[] table;
 
     /**
      * Holds cached entrySet(). Note that AbstractMap fields are used
-     * for keySet() and values().
+     * for keySet() and values().<p/>
+     * 存放具体元素的集
      */
     transient Set<Map.Entry<K,V>> entrySet;
 
     /**
-     * The number of key-value mappings contained in this map.
+     * The number of key-value mappings contained in this map.<p/>
+     * map中元素的个数，不是数组的长度。
      */
     transient int size;
 
@@ -412,7 +428,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Structural modifications are those that change the number of mappings in
      * the HashMap or otherwise modify its internal structure (e.g.,
      * rehash).  This field is used to make iterators on Collection-views of
-     * the HashMap fail-fast.  (See ConcurrentModificationException).
+     * the HashMap fail-fast.  (See ConcurrentModificationException). <p/>
+     * 每次扩容和更改map结构的计数器
      */
     transient int modCount;
 
@@ -680,6 +697,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
+        // 旧数组长度
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
@@ -705,7 +723,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         }
         threshold = newThr;
         @SuppressWarnings({"rawtypes","unchecked"})
-            Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];// 初始化数组
+        Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];// 初始化数组
         table = newTab;
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
@@ -717,11 +735,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     else if (e instanceof TreeNode)
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
+                        /* 旧数组的桶在新数组的索引位的节点 */
+                        // 索引大小没有变化
                         Node<K,V> loHead = null, loTail = null;
+                        // 索引扩大了旧数组的长度（即新索引位：旧索引位+旧数组长度）
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;
                         do {
                             next = e.next;
+                            // e.hash & oldCap == 0 就代表e的hash值（转换为2进制）高一位为0，
+                            // 与（新的容量-1）相与后，其在数组的索引位置不变
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;
@@ -729,7 +752,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                     loTail.next = e;
                                 loTail = e;
                             }
-                            else {
+                            else { // 这里则高一位为1，与新的容量 & 后，
+                                 // 其在新数组的索引位置会增加新容量的扩大值（即原容量的大小）
                                 if (hiTail == null)
                                     hiHead = e;
                                 else

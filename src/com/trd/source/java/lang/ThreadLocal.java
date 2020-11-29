@@ -87,6 +87,7 @@ public class ThreadLocal<T> {
     /**
      * The next hash code to be given out. Updated atomically. Starts at
      * zero.
+     *  存在class对象里，下一个实例对象的hashcode
      */
     private static AtomicInteger nextHashCode =
         new AtomicInteger();
@@ -328,6 +329,7 @@ public class ThreadLocal<T> {
 
         /**
          * The number of entries in the table.
+         * table中entry对象的数量
          */
         private int size = 0;
 
@@ -345,6 +347,7 @@ public class ThreadLocal<T> {
 
         /**
          * Increment i modulo len.
+         * 不超过数组长度的下一个索引
          */
         private static int nextIndex(int i, int len) {
             return ((i + 1 < len) ? i + 1 : 0);
@@ -352,6 +355,7 @@ public class ThreadLocal<T> {
 
         /**
          * Decrement i modulo len.
+         * 不越过数组的上一个索引
          */
         private static int prevIndex(int i, int len) {
             return ((i - 1 >= 0) ? i - 1 : len - 1);
@@ -436,12 +440,14 @@ public class ThreadLocal<T> {
                 ThreadLocal<?> k = e.get();
                 if (k == key)
                     return e;
+                // 内存泄漏的Entry
                 if (k == null)
                     expungeStaleEntry(i);
                 else
                     i = nextIndex(i, len);
                 e = tab[i];
             }
+            // 代表没找到，应该是还未初始化
             return null;
         }
 
@@ -464,15 +470,15 @@ public class ThreadLocal<T> {
 
             for (Entry e = tab[i];
                  e != null;
-                 e = tab[i = nextIndex(i, len)]) {
+                 e = tab[i = nextIndex(i, len)]) { // 发生hash冲突了或者是重新赋值了
                 ThreadLocal<?> k = e.get();
 
-                if (k == key) {
+                if (k == key) { // 新值换旧值
                     e.value = value;
                     return;
                 }
 
-                if (k == null) {
+                if (k == null) { // 有Entry泄露了
                     replaceStaleEntry(key, value, i);
                     return;
                 }
@@ -528,6 +534,7 @@ public class ThreadLocal<T> {
             // incremental rehashing due to garbage collector freeing
             // up refs in bunches (i.e., whenever the collector runs).
             int slotToExpunge = staleSlot;
+            // 找到索引最小的泄漏Entry
             for (int i = prevIndex(staleSlot, len);
                  (e = tab[i]) != null;
                  i = prevIndex(i, len))
@@ -585,6 +592,8 @@ public class ThreadLocal<T> {
          * @return the index of the next null slot after staleSlot
          * (all between staleSlot and this slot will have been checked
          * for expunging).
+         *
+         * 清除泄漏的Entry对象，并且重新处理该位置之后存在hash冲突的Entry
          */
         private int expungeStaleEntry(int staleSlot) {
             Entry[] tab = table;
@@ -595,7 +604,7 @@ public class ThreadLocal<T> {
             tab[staleSlot] = null;
             size--;
 
-            // Rehash until we encounter null
+            // Rehash until we encounter null 重新hash直到碰到Entry为null
             Entry e;
             int i;
             for (i = nextIndex(staleSlot, len);
@@ -608,6 +617,8 @@ public class ThreadLocal<T> {
                     size--;
                 } else {
                     int h = k.threadLocalHashCode & (len - 1);
+                    // h不等于i，就代表这个Entry一定是经过hash碰撞后重新计算位置了的，
+                    // 就需要重新计算其hash碰撞后的索引位置
                     if (h != i) {
                         tab[i] = null;
 
@@ -653,12 +664,13 @@ public class ThreadLocal<T> {
             do {
                 i = nextIndex(i, len);
                 Entry e = tab[i];
+                // 存在内存泄漏的Entry
                 if (e != null && e.get() == null) {
                     n = len;
                     removed = true;
                     i = expungeStaleEntry(i);
                 }
-            } while ( (n >>>= 1) != 0);
+            } while ( (n >>>= 1) != 0); // n无符号右移1位再赋值给自己，相当于数组长度缩一倍
             return removed;
         }
 
@@ -676,6 +688,7 @@ public class ThreadLocal<T> {
         }
 
         /**
+         * 新建一个原数组两倍大小的新数组，值放在新数组，table的引用新数组再替换就数组
          * Double the capacity of the table.
          */
         private void resize() {
@@ -690,6 +703,7 @@ public class ThreadLocal<T> {
                 if (e != null) {
                     ThreadLocal<?> k = e.get();
                     if (k == null) {
+                        // 感觉这里没必要的？因为旧Entry数组都会被GC
                         e.value = null; // Help the GC
                     } else {
                         int h = k.threadLocalHashCode & (newLen - 1);

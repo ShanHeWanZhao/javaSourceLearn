@@ -434,6 +434,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     public E take() throws InterruptedException {
         E x;
         int c = -1;
+        // 当前元素的个数
         final AtomicInteger count = this.count;
         final ReentrantLock takeLock = this.takeLock;
         takeLock.lockInterruptibly();
